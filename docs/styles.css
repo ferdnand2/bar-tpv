@@ -1,0 +1,330 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f4f2ee;
+  --card: #ffffff;
+  --ink: #2b2620;
+  --muted: #7a7266;
+  --line: #e3ded6;
+  --accent: #b4552d;
+  --accent-dark: #93431f;
+  --ok: #3d7a4a;
+  --warn: #c9a227;
+  --danger: #b03030;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1 { font-size: 1.2rem; }
+
+nav { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+.tab {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 0.5rem 1.1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.badge {
+  background: var(--danger);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 0.45em;
+  font-size: 0.8em;
+}
+
+main { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
+
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0 0.8rem; }
+
+/* ---- Mesas ---- */
+.area-title { margin: 1rem 0 0.5rem; font-size: 1.05rem; }
+.area-title:first-child { margin-top: 0; }
+
+.tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.8rem;
+}
+
+.table-btn {
+  min-height: 96px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.5rem;
+}
+.table-btn .seats { color: var(--muted); font-size: 0.78rem; }
+.table-btn .amount { font-weight: 700; color: var(--accent-dark); }
+.table-btn.occupied { border-color: var(--accent); background: #fdf0e8; }
+.table-btn:hover { border-color: var(--accent); }
+
+/* ---- Panel de comanda ---- */
+.order-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.2rem;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.tarifa-label { font-size: 0.9rem; color: var(--muted); }
+.tarifa-label select { padding: 0.25rem; border: 1px solid var(--line); border-radius: 6px; font-size: 0.9rem; }
+
+.order-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  overflow: hidden;
+}
+@media (max-width: 760px) {
+  .order-body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+}
+
+.product-picker { display: flex; flex-direction: column; overflow: hidden; }
+
+.category-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.category-tabs button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+.category-tabs button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.product-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.6rem;
+  overflow-y: auto;
+  align-content: start;
+}
+.product-buttons button {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 0.7rem 0.5rem;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.95rem;
+}
+.product-buttons button:hover { border-color: var(--accent); }
+.product-buttons button:disabled { opacity: 0.45; cursor: not-allowed; }
+.product-buttons .price { display: block; color: var(--muted); font-size: 0.85em; margin-top: 0.2em; }
+.product-buttons .stock-low { color: var(--danger); font-size: 0.75em; }
+
+.order-items {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.order-items ul { flex: 1; overflow-y: auto; list-style: none; margin: 0.6rem 0; }
+.order-items li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.order-items li .name { flex: 1; }
+.order-items li .qty-btn {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 6px;
+  width: 1.8rem;
+  height: 1.8rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.order-total { font-size: 1.3rem; text-align: right; padding: 0.5rem 0; }
+.order-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.order-actions button { flex: 1; }
+
+/* ---- Botones ---- */
+.btn-primary, .btn-danger, .btn-plain {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-danger { background: #fff; color: var(--danger); border-color: var(--danger); }
+.btn-plain { background: var(--card); border-color: var(--line); }
+
+/* ---- Tablas de datos ---- */
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 0.5rem; flex-wrap: wrap; }
+.toolbar-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.table-scroll { overflow-x: auto; }
+
+.data-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+.data-table th, .data-table td { padding: 0.55rem 0.7rem; text-align: left; border-bottom: 1px solid var(--line); }
+.data-table th { background: var(--bg); font-weight: 600; font-size: 0.9rem; }
+.data-table tr.low-stock td { background: #fdecec; }
+.data-table input { width: 5.5rem; padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; }
+.data-table input.wide { width: 100%; min-width: 8rem; }
+.data-table .row-actions button { margin-left: 0.3rem; }
+
+/* ---- Listas de precios ---- */
+.precios-grid { display: grid; grid-template-columns: 220px 1fr; gap: 1rem; align-items: start; }
+@media (max-width: 760px) { .precios-grid { grid-template-columns: 1fr; } }
+
+.pl-list { list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.pl-list li { padding: 0.7rem 1rem; border-bottom: 1px solid var(--line); cursor: pointer; }
+.pl-list li:last-child { border-bottom: none; }
+.pl-list li.active { background: var(--accent); color: #fff; }
+.pl-list li.muted { cursor: default; }
+
+.pl-name { font-size: 1.1rem; font-weight: 600; padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; flex: 1; min-width: 10rem; }
+
+/* ---- Caja ---- */
+.caja-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 860px) { .caja-grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.2rem;
+}
+.card h3 { margin: 1.2rem 0 0.5rem; font-size: 1rem; color: var(--muted); }
+
+.stat-row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed var(--line); }
+.stat-row strong { font-variant-numeric: tabular-nums; }
+.stat-row.total { font-size: 1.15rem; border-bottom: none; }
+
+.sales-list { list-style: none; max-height: 300px; overflow-y: auto; }
+.sales-list li { padding: 0.4rem 0; border-bottom: 1px dashed var(--line); font-size: 0.92rem; display: flex; justify-content: space-between; gap: 0.5rem; }
+
+#btnCloseCash { width: 100%; margin-top: 0.8rem; }
+
+/* ---- Ajustes ---- */
+.ajustes-negocio { margin-bottom: 1.2rem; max-width: 480px; }
+.ajustes-negocio label { display: block; margin-top: 0.6rem; font-size: 0.95rem; }
+.ajustes-negocio input { display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem; border: 1px solid var(--line); border-radius: 8px; font-size: 1rem; }
+
+.local-card { margin-bottom: 1.2rem; }
+.local-name { font-size: 1.1rem; font-weight: 600; padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; flex: 1; min-width: 10rem; }
+
+.area-block { border-top: 1px solid var(--line); padding: 0.8rem 0; }
+.area-head { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.area-name { padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; font-weight: 600; width: 11rem; }
+.area-pl { padding: 0.4rem; border: 1px solid var(--line); border-radius: 8px; }
+
+.mesas-wrap { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.mesa-row {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.3rem;
+}
+.mesa-name { width: 7rem; padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; }
+.mesa-seats { width: 3.4rem; padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; }
+.mesa-row .btn-plain { padding: 0.25rem 0.5rem; }
+
+/* ---- Modales ---- */
+dialog { border: none; border-radius: 12px; padding: 1.5rem; width: min(420px, 92vw); }
+dialog.wide-dialog { width: min(720px, 94vw); }
+dialog::backdrop { background: rgba(0,0,0,0.35); }
+dialog label { display: block; margin-bottom: 0.7rem; font-size: 0.95rem; }
+dialog input { display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem; border: 1px solid var(--line); border-radius: 8px; font-size: 1rem; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+#restockContent { max-height: 55vh; overflow-y: auto; }
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  padding: 0.7rem 1.3rem;
+  border-radius: 10px;
+  z-index: 100;
+  max-width: 90vw;
+}
+.toast.error { background: var(--danger); }
+
+/* ---- Ticket (formato rollo) ---- */
+.ticket {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  width: 260px;
+  background: #fff;
+  padding: 10px;
+}
+.ticket h2 { text-align: center; font-size: 14px; }
+.ticket .center { text-align: center; }
+.ticket table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.ticket td { padding: 1px 0; }
+.ticket td:last-child { text-align: right; }
+.ticket .sep { border-top: 1px dashed #000; margin: 4px 0; }
+.ticket .big { font-size: 14px; font-weight: bold; }
+
+/* ---- Documentos imprimibles (informes, cartas) ---- */
+.print-doc { background: #fff; padding: 20px; font-size: 13px; }
+.print-doc h1 { font-size: 18px; margin-bottom: 4px; }
+.print-doc h2 { font-size: 15px; margin-bottom: 10px; font-weight: normal; color: #555; }
+.print-doc h3 { font-size: 13px; margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.print-doc table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.print-doc th, .print-doc td { padding: 4px 6px; border-bottom: 1px solid #ddd; text-align: left; }
+.print-doc .doc-prices td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+@media print {
+  body > * { display: none !important; }
+  body[data-print="ticket"] #ticket { display: block !important; }
+  body[data-print="doc"] #printArea { display: block !important; }
+}

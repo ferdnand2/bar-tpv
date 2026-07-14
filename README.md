@@ -2,6 +2,8 @@
 
 TPV con comandas por mesa, inventario con reposición, listas de precios, locales/áreas/mesas y caja con cierres e informes. App web local sin dependencias (solo Node.js).
 
+**Demo:** https://ferdnand2.github.io/bar-tpv/ — versión de demostración en GitHub Pages que guarda los datos en el navegador (localStorage). La versión real es esta, con servidor y base de datos (`data/db.json`); la demo (`docs/`) es solo para enseñar el sistema.
+
 ## Arrancar
 
 ```
@@ -19,6 +21,16 @@ Los datos se guardan en `data/db.json` (se crea solo, con datos de ejemplo la pr
 - **Precios** — listas de precios libres: cada lista puede fijar precios distintos por producto (vacío = precio base). Se asignan a áreas en Ajustes (p. ej. tarifa de terraza) o se eligen manualmente en una comanda (p. ej. cliente especial). Cualquier lista, y la carta base, se pueden imprimir.
 - **Caja** — total en caja desde el último cierre desglosado por efectivo/tarjeta, cierre de caja, histórico de cierres e informe de 30 días con los productos más vendidos.
 - **Ajustes** — nombre del negocio e IVA del ticket; estructura de **locales → áreas → mesas**. Una silla es una mesa de 1 puesto (botones "+ Mesa" y "+ Silla"). Cada área puede tener asignada una lista de precios, que heredan sus comandas.
+
+## Demo de GitHub Pages
+
+`docs/` contiene la demo estática: el mismo frontend más `docs/localdb.js`, que implementa la API en el navegador sobre localStorage. Tras cambiar algo en `public/`, regenerarla con:
+
+```
+node tools/build-pages.js
+```
+
+(`docs/localdb.js` es fuente propia: si cambia la lógica de `server.js`, hay que replicar el cambio ahí a mano.)
 
 ## Modelo de datos
 
