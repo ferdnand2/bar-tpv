@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bar TPV</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍺</text></svg>">
+</head>
+<body>
+<header>
+  <h1 id="barName">Mi Bar</h1>
+  <nav>
+    <button data-view="mesas" class="tab active">Mesas</button>
+    <button data-view="inventario" class="tab">Inventario <span id="lowStockBadge" class="badge hidden"></span></button>
+    <button data-view="precios" class="tab">Precios</button>
+    <button data-view="caja" class="tab">Caja</button>
+    <button data-view="ajustes" class="tab">Ajustes</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ===== MESAS / TPV ===== -->
+  <section id="view-mesas" class="view">
+    <div id="localTabs" class="category-tabs"></div>
+    <div id="areasContainer"></div>
+
+    <div id="orderPanel" class="order-panel hidden">
+      <div class="order-header">
+        <div>
+          <h2 id="orderTitle"></h2>
+          <label class="tarifa-label">Tarifa:
+            <select id="orderPriceList"></select>
+          </label>
+        </div>
+        <button id="closePanel" class="btn-plain">✕</button>
+      </div>
+      <div class="order-body">
+        <div class="product-picker">
+          <div id="categoryTabs" class="category-tabs"></div>
+          <div id="productButtons" class="product-buttons"></div>
+        </div>
+        <div class="order-items">
+          <h3>Comanda</h3>
+          <ul id="itemsList"></ul>
+          <div class="order-total">Total: <strong id="orderTotal">0,00 €</strong></div>
+          <div class="order-actions">
+            <button id="btnCancelOrder" class="btn-danger">Anular</button>
+            <button id="btnPayCash" class="btn-primary">Cobrar efectivo</button>
+            <button id="btnPayCard" class="btn-primary">Cobrar tarjeta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== INVENTARIO ===== -->
+  <section id="view-inventario" class="view hidden">
+    <div class="toolbar">
+      <h2>Inventario</h2>
+      <div class="toolbar-actions">
+        <button id="btnRestock" class="btn-plain">📋 Informe de reposición</button>
+        <button id="btnNewProduct" class="btn-primary">+ Nuevo producto</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table" id="productsTable">
+        <thead><tr><th>Producto</th><th>Categoría</th><th>Precio base</th><th>Stock</th><th>Mínimo</th><th>Máximo</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== LISTAS DE PRECIOS ===== -->
+  <section id="view-precios" class="view hidden">
+    <div class="toolbar">
+      <h2>Listas de precios</h2>
+      <div class="toolbar-actions">
+        <button id="btnPrintBase" class="btn-plain">🖨 Imprimir carta (precios base)</button>
+        <button id="btnNewList" class="btn-primary">+ Nueva lista</button>
+      </div>
+    </div>
+    <div class="precios-grid">
+      <ul id="priceListsUl" class="pl-list"></ul>
+      <div id="plEditor" class="card"></div>
+    </div>
+  </section>
+
+  <!-- ===== CAJA ===== -->
+  <section id="view-caja" class="view hidden">
+    <div class="caja-grid">
+      <div class="card">
+        <h2>Caja actual</h2>
+        <div id="cajaResumen"></div>
+        <button id="btnCloseCash" class="btn-primary">Hacer cierre de caja</button>
+        <h3>Ventas pendientes de cierre</h3>
+        <ul id="pendingSales" class="sales-list"></ul>
+      </div>
+      <div class="card">
+        <h2>Informe (30 días)</h2>
+        <div id="reportSummary"></div>
+        <h3>Productos más vendidos</h3>
+        <table class="data-table" id="topProductsTable">
+          <thead><tr><th>Producto</th><th>Uds.</th><th>Importe</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <h3>Cierres anteriores</h3>
+        <ul id="closesList" class="sales-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AJUSTES: negocio, locales, áreas y mesas ===== -->
+  <section id="view-ajustes" class="view hidden">
+    <div class="card ajustes-negocio">
+      <h2>Negocio</h2>
+      <label>Nombre <input id="cfgNombre"></label>
+      <label>IVA del ticket (%) <input id="cfgIva" type="number" min="0" max="50" step="0.5"></label>
+    </div>
+    <div class="toolbar">
+      <h2>Locales, áreas y mesas</h2>
+      <button id="btnNewLocal" class="btn-primary">+ Local</button>
+    </div>
+    <p class="hint">Una silla es una mesa de 1 puesto. Cada área puede tener asignada una lista de precios.</p>
+    <div id="localesContainer"></div>
+  </section>
+</main>
+
+<!-- Ticket imprimible (formato rollo) -->
+<div id="ticket" class="ticket hidden"></div>
+<!-- Documentos imprimibles (informes, cartas de precios) -->
+<div id="printArea" class="print-doc hidden"></div>
+
+<!-- Modal producto -->
+<dialog id="productDialog">
+  <form id="productForm" method="dialog">
+    <h2>Nuevo producto</h2>
+    <label>Nombre <input name="name" required></label>
+    <label>Categoría <input name="category" required list="categoriesList"></label>
+    <datalist id="categoriesList"></datalist>
+    <label>Precio base (€) <input name="price" type="number" step="0.01" min="0" required></label>
+    <label>Stock <input name="stock" type="number" min="0" value="0"></label>
+    <label>Stock mínimo <input name="minStock" type="number" min="0" value="0"></label>
+    <label>Stock máximo <input name="maxStock" type="number" min="0" value="0"></label>
+    <div class="dialog-actions">
+      <button type="button" id="productCancel" class="btn-plain">Cancelar</button>
+      <button type="submit" class="btn-primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Modal informe de reposición -->
+<dialog id="restockDialog" class="wide-dialog">
+  <h2>Informe de reposición</h2>
+  <p class="hint">Productos agotados o por debajo del 20% del stock máximo, con la cantidad sugerida para pedir al proveedor.</p>
+  <div id="restockContent"></div>
+  <div class="dialog-actions">
+    <button type="button" id="restockClose" class="btn-plain">Cerrar</button>
+    <button type="button" id="restockPrint" class="btn-primary">🖨 Imprimir</button>
+  </div>
+</dialog>
+
+<div id="toast" class="toast hidden"></div>
+<script src="app.js"></script>
+</body>
+</html>
