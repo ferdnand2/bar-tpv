@@ -10,8 +10,12 @@
 <body>
 <header>
   <h1 id="barName">Mi Bar</h1>
+  <label id="waiterWrap" class="waiter-label hidden" title="Mesero activo: queda registrado al comandar y al llevar pedidos">👤
+    <select id="waiterSel"></select>
+  </label>
   <nav>
     <button data-view="mesas" class="tab active">Mesas</button>
+    <button data-view="preparacion" class="tab">Preparación <span id="prepBadge" class="badge hidden"></span></button>
     <button data-view="inventario" class="tab">Inventario <span id="lowStockBadge" class="badge hidden"></span></button>
     <button data-view="precios" class="tab">Precios</button>
     <button data-view="caja" class="tab">Caja</button>
@@ -23,17 +27,26 @@
   <!-- ===== MESAS / TPV ===== -->
   <section id="view-mesas" class="view">
     <div id="localTabs" class="category-tabs"></div>
+    <div class="mesas-toolbar">
+      <p class="hint mesas-leyenda">🟢 Pedido pendiente, a tiempo &nbsp;·&nbsp; 🟡 Espera alta &nbsp;·&nbsp; 🔴 Demasiada espera &nbsp;·&nbsp; 🔵 Atendido &nbsp;·&nbsp; ⚪ Libre</p>
+      <button id="btnLayout" class="btn-plain" title="Dibuja la distribución real del local arrastrando las mesas">✏️ Distribución</button>
+    </div>
+    <p id="layoutHint" class="hint hidden">Arrastra cada mesa a su sitio para dibujar la distribución real del área, y usa el tirador ◢ de la esquina para cambiar el tamaño del espacio. Al terminar, pulsa «✔ Terminar». «▦ Quitar plano» devuelve el área a la cuadrícula.</p>
     <div id="areasContainer"></div>
 
     <div id="orderPanel" class="order-panel hidden">
       <div class="order-header">
         <div>
           <h2 id="orderTitle"></h2>
+          <p id="orderNote" class="order-note" title="Toca para editar la descripción de la mesa"></p>
           <label class="tarifa-label">Tarifa:
             <select id="orderPriceList"></select>
           </label>
         </div>
-        <button id="closePanel" class="btn-plain">✕</button>
+        <div class="order-head-actions">
+          <button id="btnTableQR" class="btn-plain" title="Imprimir el código QR de esta mesa">🖨 QR</button>
+          <button id="closePanel" class="btn-plain">✕</button>
+        </div>
       </div>
       <div class="order-body">
         <div class="product-picker">
@@ -45,6 +58,7 @@
           <ul id="itemsList"></ul>
           <div class="order-total">Total: <strong id="orderTotal">0,00 €</strong></div>
           <div class="order-actions">
+            <button id="btnSendOrder" class="btn-primary hidden">📤 Enviar pedido</button>
             <button id="btnCancelOrder" class="btn-danger">Anular</button>
             <button id="btnPayCash" class="btn-primary">Cobrar efectivo</button>
             <button id="btnPayCard" class="btn-primary">Cobrar tarjeta</button>
@@ -52,6 +66,15 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ===== PREPARACIÓN (cocina / bar) ===== -->
+  <section id="view-preparacion" class="view hidden">
+    <div class="toolbar">
+      <h2>Comandas por preparar</h2>
+    </div>
+    <div id="prepTabs" class="category-tabs"></div>
+    <div id="prepContainer"></div>
   </section>
 
   <!-- ===== INVENTARIO ===== -->
@@ -65,7 +88,15 @@
     </div>
     <div class="table-scroll">
       <table class="data-table" id="productsTable">
-        <thead><tr><th>Producto</th><th>Categoría</th><th>Precio base</th><th>Stock</th><th>Mínimo</th><th>Máximo</th><th></th></tr></thead>
+        <thead><tr>
+          <th data-sort="name">Producto</th>
+          <th data-sort="category">Categoría</th>
+          <th data-sort="price">Precio base</th>
+          <th data-sort="stock">Stock</th>
+          <th data-sort="minStock">Mínimo</th>
+          <th data-sort="maxStock">Máximo</th>
+          <th></th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -77,6 +108,7 @@
       <h2>Listas de precios</h2>
       <div class="toolbar-actions">
         <button id="btnPrintBase" class="btn-plain">🖨 Imprimir carta (precios base)</button>
+        <button id="btnQRBase" class="btn-plain" title="Código QR que abre la carta con los precios base">📱 QR de la carta</button>
         <button id="btnNewList" class="btn-primary">+ Nueva lista</button>
       </div>
     </div>
@@ -116,19 +148,43 @@
       <h2>Negocio</h2>
       <label>Nombre <input id="cfgNombre"></label>
       <label>IVA del ticket (%) <input id="cfgIva" type="number" min="0" max="50" step="0.5"></label>
+      <label>Clave de supervisor <input id="cfgPin" type="password" inputmode="numeric" placeholder="4-8 dígitos" autocomplete="new-password"></label>
+    </div>
+    <div class="card">
+      <h2>Terminales POS (datáfonos)</h2>
+      <p class="hint">Al cobrar con tarjeta se pedirá el POS utilizado y el código de la transacción.</p>
+      <ul id="posList" class="pos-list"></ul>
+      <button id="btnAddPos" class="btn-plain">+ Añadir POS</button>
+    </div>
+    <div class="card">
+      <h2>Meseros</h2>
+      <p class="hint">El mesero seleccionado en la cabecera queda registrado como responsable al comandar y al llevar los pedidos a la mesa.</p>
+      <ul id="waitersList" class="pos-list"></ul>
+      <button id="btnAddWaiter" class="btn-plain">+ Añadir mesero</button>
+    </div>
+    <div class="card">
+      <h2>Categorías</h2>
+      <p class="hint">Cada categoría de producto puede enviarse a un área de preparación (p. ej. Cocina recibe las comidas y Barra las bebidas); los pedidos aparecen en la pestaña «Preparación». Los tiempos de aviso, en minutos desde que se envía el pedido, colorean la mesa y la línea en Preparación: 🟡 <strong>Alto</strong> (amarillo) y 🔴 <strong>Demasiado</strong> (rojo); en verde si todo va a tiempo. Vacío = sin aviso.</p>
+      <div id="stationsContainer"></div>
     </div>
     <div class="toolbar">
       <h2>Locales, áreas y mesas</h2>
-      <button id="btnNewLocal" class="btn-primary">+ Local</button>
+      <div class="toolbar-actions">
+        <button id="btnPrintQR" class="btn-plain">🖨 Códigos QR de mesas</button>
+        <button id="btnNewLocal" class="btn-primary">+ Local</button>
+      </div>
     </div>
-    <p class="hint">Una silla es una mesa de 1 puesto. Cada área puede tener asignada una lista de precios.</p>
+    <p class="hint">Una silla es una mesa de 1 puesto. Cada área puede tener asignada una lista de precios. La descripción de la mesa ayuda a los meseros (p. ej. «mesa unida con la 6»).</p>
     <div id="localesContainer"></div>
   </section>
+
+  <!-- ===== CARTA PÚBLICA (se abre escaneando el QR de la carta) ===== -->
+  <section id="view-carta" class="view hidden"></section>
 </main>
 
 <!-- Ticket imprimible (formato rollo) -->
 <div id="ticket" class="ticket hidden"></div>
-<!-- Documentos imprimibles (informes, cartas de precios) -->
+<!-- Documentos imprimibles (informes, cartas de precios, QR) -->
 <div id="printArea" class="print-doc hidden"></div>
 
 <!-- Modal producto -->
@@ -139,6 +195,7 @@
     <label>Categoría <input name="category" required list="categoriesList"></label>
     <datalist id="categoriesList"></datalist>
     <label>Precio base (€) <input name="price" type="number" step="0.01" min="0" required></label>
+    <label class="check-label"><input type="checkbox" name="openPrice"> Precio libre: se pide al vender, sin control de stock (tipo «Varios»)</label>
     <label>Stock <input name="stock" type="number" min="0" value="0"></label>
     <label>Stock mínimo <input name="minStock" type="number" min="0" value="0"></label>
     <label>Stock máximo <input name="maxStock" type="number" min="0" value="0"></label>
@@ -160,7 +217,64 @@
   </div>
 </dialog>
 
+<!-- Modal ajuste masivo de precios -->
+<dialog id="plAdjustDialog">
+  <form id="plAdjustForm" method="dialog">
+    <h2>Ajuste masivo de precios</h2>
+    <p class="hint">Calcula los precios de esta lista a partir del precio base de cada producto.</p>
+    <label>Tipo
+      <select name="mode">
+        <option value="amount">Sumar importe (€; negativo resta)</option>
+        <option value="percent">Porcentaje (%; negativo rebaja)</option>
+      </select>
+    </label>
+    <label>Valor <input name="value" type="number" step="0.01" required></label>
+    <label>Aplicar a
+      <select name="scope" id="adjScope">
+        <option value="all">Todos los productos</option>
+        <option value="category">Una categoría</option>
+        <option value="product">Un producto</option>
+      </select>
+    </label>
+    <label id="adjCatLabel" class="hidden">Categoría <select name="category" id="adjCategory"></select></label>
+    <label id="adjProdLabel" class="hidden">Producto <select name="productId" id="adjProduct"></select></label>
+    <div class="dialog-actions">
+      <button type="button" id="adjCancel" class="btn-plain">Cancelar</button>
+      <button type="submit" class="btn-primary">Aplicar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Modal pago con tarjeta -->
+<dialog id="cardDialog">
+  <form id="cardForm" method="dialog">
+    <h2>Pago con tarjeta</h2>
+    <label>POS / datáfono <input name="pos" list="posDatalist" required></label>
+    <datalist id="posDatalist"></datalist>
+    <label>Código de transacción <input name="code" required></label>
+    <label>Referencia (opcional) <input name="ref"></label>
+    <div class="dialog-actions">
+      <button type="button" id="cardCancel" class="btn-plain">Cancelar</button>
+      <button type="submit" class="btn-primary">Cobrar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Modal producto de precio libre -->
+<dialog id="openPriceDialog">
+  <form id="openPriceForm" method="dialog">
+    <h2 id="openPriceTitle">Producto</h2>
+    <label>Descripción <input name="name"></label>
+    <label>Precio (€) <input name="price" type="number" step="0.01" min="0" required></label>
+    <div class="dialog-actions">
+      <button type="button" id="openPriceCancel" class="btn-plain">Cancelar</button>
+      <button type="submit" class="btn-primary">Añadir</button>
+    </div>
+  </form>
+</dialog>
+
 <div id="toast" class="toast hidden"></div>
+<script src="qr.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

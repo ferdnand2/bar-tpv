@@ -8,7 +8,7 @@ const pub = path.join(__dirname, '..', 'public');
 const docs = path.join(__dirname, '..', 'docs');
 
 fs.mkdirSync(docs, { recursive: true });
-for (const f of ['styles.css', 'app.js']) {
+for (const f of ['styles.css', 'app.js', 'qr.js']) {
   fs.copyFileSync(path.join(pub, f), path.join(docs, f));
 }
 

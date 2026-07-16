@@ -11,6 +11,7 @@
   --ok: #3d7a4a;
   --warn: #c9a227;
   --danger: #b03030;
+  --info: #2e6da4;
 }
 
 body {
@@ -328,3 +329,151 @@ dialog input { display: block; width: 100%; padding: 0.5rem; margin-top: 0.25rem
   body[data-print="ticket"] #ticket { display: block !important; }
   body[data-print="doc"] #printArea { display: block !important; }
 }
+
+/* ---- Ordenación por cabeceras ---- */
+th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+th[data-sort]:hover { color: var(--accent); }
+th.sorted-asc::after { content: " ▲"; font-size: 0.7em; }
+th.sorted-desc::after { content: " ▼"; font-size: 0.7em; }
+
+/* ---- Descripción de mesas ---- */
+.table-note {
+  font-size: 0.72rem;
+  color: var(--muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.order-note { font-size: 0.85rem; color: var(--muted); cursor: pointer; margin: 0.15rem 0 0.3rem; }
+.order-note.empty { opacity: 0.6; font-style: italic; }
+.mesa-note { flex: 1 1 180px; min-width: 140px; }
+
+/* ---- Listas de precios: vigencia y ajuste ---- */
+.pl-meta { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 0.6rem 0 0.2rem; }
+.pl-meta label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; color: var(--muted); }
+.pl-estado { font-size: 0.85rem; font-weight: 600; }
+.pl-estado.ok { color: var(--ok); }
+.pl-estado.off { color: var(--danger); }
+.check-label { display: flex; align-items: center; gap: 0.5rem; }
+.check-label input { width: auto; }
+
+/* ---- Preparación (cocina / bar) ---- */
+.prep-list { list-style: none; margin: 0.8rem 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.prep-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  flex-wrap: wrap;
+}
+.prep-time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.prep-what { flex: 1 1 180px; }
+.prep-table { flex: 1 1 200px; font-size: 0.9rem; color: var(--muted); }
+
+/* ---- Ajustes: POS y envío de comandas ---- */
+.pos-list { list-style: none; margin: 0.4rem 0 0.8rem; }
+.pos-list li { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.3rem 0; border-bottom: 1px solid var(--line); max-width: 380px; }
+.station-row { display: flex; align-items: center; gap: 0.8rem; padding: 0.3rem 0; flex-wrap: wrap; }
+.station-cat { min-width: 140px; font-weight: 600; }
+
+/* ---- Caja: cierres con reimpresión ---- */
+.closes-right { display: flex; align-items: center; gap: 0.4rem; }
+
+/* ---- Mesero activo (cabecera) ---- */
+.waiter-label { font-size: 0.95rem; display: flex; align-items: center; gap: 0.3rem; }
+.waiter-label select { padding: 0.35rem; border: 1px solid var(--line); border-radius: 6px; font-size: 0.95rem; }
+
+/* ---- Estados de las líneas de comanda ---- */
+.status-chip {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.status-chip.st-borrador { border-style: dashed; color: var(--muted); }
+.status-chip.st-procesando { border-color: var(--warn); background: #fdf6e0; }
+.status-chip.st-listo { border-color: var(--accent); background: #fdf0e8; font-weight: 600; }
+.status-chip.st-entregado { border-color: var(--ok); background: #e9f4ec; color: var(--ok); cursor: default; }
+
+.order-head-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+/* ---- Preparación: estado y responsable ---- */
+.prep-status { flex: 1 1 150px; font-size: 0.85rem; }
+.prep-list li.st-listo { border-color: var(--accent); background: #fdf6f0; }
+
+/* ---- Tiempos de aviso: verde a tiempo, amarillo «Alto», rojo «Demasiado» ---- */
+.table-btn.occupied.time-ok { border-color: var(--ok); background: #e9f4ec; }
+.table-btn.occupied.time-warn { border-color: var(--warn); background: #fdf6e0; }
+.table-btn.occupied.time-late { border-color: var(--danger); background: #fdecec; }
+.table-btn.occupied.time-done { border-color: var(--info); background: #e8f1fb; }
+.mesas-leyenda { margin: 0.2rem 0 0.8rem; }
+.mesas-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.btn-mini { padding: 0.2rem 0.6rem; font-size: 0.8rem; margin-left: 0.6rem; }
+
+/* ---- Plano del área: mesas en su posición real (drag & drop) ---- */
+.area-plan {
+  position: relative;
+  height: 380px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background-color: var(--card);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 26px 26px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.area-plan .table-btn { position: absolute; width: 122px; min-height: 84px; }
+.layout-edit .area-plan .table-btn { cursor: grab; touch-action: none; }
+.layout-edit .area-plan .table-btn:active { cursor: grabbing; z-index: 5; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+
+/* Tirador de redimensionado del plano (solo en modo edición) */
+.plan-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26px;
+  height: 26px;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-radius: 12px 0 10px 0;
+  background: linear-gradient(135deg, transparent 50%, var(--accent) 50%);
+  opacity: 0.7;
+  z-index: 6;
+}
+.plan-resize:hover { opacity: 1; }
+.prep-list li.time-ok { border-left: 5px solid var(--ok); }
+.prep-list li.time-warn { border-color: var(--warn); border-left: 5px solid var(--warn); background: #fdf6e0; }
+.prep-list li.time-late { border-color: var(--danger); border-left: 5px solid var(--danger); background: #fdecec; }
+.station-row .time-label { display: flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.station-row .time-label input { width: 4rem; padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; }
+
+/* ---- Carta pública (acceso por QR) ---- */
+.carta-doc {
+  max-width: 560px;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.carta-doc h1 { font-size: 1.4rem; }
+.carta-doc h2 { color: var(--muted); font-weight: normal; font-size: 1rem; margin: 0.2rem 0 1rem; }
+.carta-doc h3 { margin: 1.1rem 0 0.3rem; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.05em; color: var(--muted); }
+.carta-doc table { width: 100%; border-collapse: collapse; }
+.carta-doc td { padding: 0.35rem 0; border-bottom: 1px dashed var(--line); }
+.carta-doc td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+body.carta-mode nav, body.carta-mode .waiter-label { display: none; }
+
+/* ---- Códigos QR de mesas ---- */
+.qr-grid { display: flex; flex-wrap: wrap; gap: 1.4rem; margin-top: 0.8rem; }
+.qr-item { width: 170px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+.qr-item svg { width: 150px; height: 150px; }
+.qr-label { font-weight: 600; margin-top: 0.3rem; font-size: 12px; }
+.qr-url { font-size: 8px; color: #777; word-break: break-all; }
