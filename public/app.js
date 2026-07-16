@@ -1097,6 +1097,69 @@ $('#btnNewList').addEventListener('click', async () => {
   } catch (err) { handle(err); }
 });
 
+// ---------- Exportar / importar ----------
+// Los ficheros van referenciados por nombre (no por id), así se pueden llevar
+// a otra instalación. Importar crea o actualiza por nombre; nunca borra nada.
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function fileSlug(s) {
+  return String(s || '').trim().toLowerCase().replace(/[^a-z0-9ñ]+/gi, '-').replace(/^-+|-+$/g, '') || 'bar';
+}
+
+async function exportData(kind) {
+  try {
+    const data = await api('GET', `/api/export/${kind}`);
+    downloadJSON(data, `${kind}-${fileSlug(state.config.nombreBar)}-${todayISO()}.json`);
+    toast('Exportación descargada');
+  } catch (err) { handle(err); }
+}
+
+// Abre el selector de fichero, confirma e importa (la clave de supervisor protege
+// la importación: modifica datos en masa).
+function importData(kind, confirmMsg, summaryOf) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch { toast('El fichero no es un JSON válido', true); return; }
+    if (!confirm(confirmMsg)) return;
+    const pin = await askSupervisor();
+    if (pin === null) return;
+    try {
+      const r = await api('POST', `/api/import/${kind}`, { pin, data });
+      await refresh();
+      alert(summaryOf(r));
+    } catch (err) { handle(err); }
+  });
+  input.click();
+}
+
+$('#btnExportPrecios').addEventListener('click', () => exportData('precios'));
+$('#btnImportPrecios').addEventListener('click', () => importData('precios',
+  'Se crearán o actualizarán (por nombre) los productos y las listas de precios del fichero. No se borra nada y el stock actual no se toca. ¿Continuar?',
+  r => `Importación completada.\n\n· Productos: ${r.productsCreated} nuevos, ${r.productsUpdated} actualizados` +
+    `\n· Listas de precios: ${r.listsCreated} nuevas, ${r.listsUpdated} actualizadas` +
+    (r.pricesOmitted ? `\n· ${r.pricesOmitted} precio(s) omitido(s) (producto desconocido o de precio libre)` : '')));
+
+$('#btnExportSalas').addEventListener('click', () => exportData('salas'));
+$('#btnImportSalas').addEventListener('click', () => importData('salas',
+  'Se crearán o actualizarán (por nombre) los locales, áreas y mesas del fichero, incluido el plano. No se borra nada. ¿Continuar?',
+  r => `Importación completada.\n\n· Locales: ${r.localesCreated} nuevos` +
+    `\n· Áreas: ${r.areasCreated} nuevas, ${r.areasUpdated} actualizadas` +
+    `\n· Mesas: ${r.tablesCreated} nuevas, ${r.tablesUpdated} actualizadas`));
+
 // ---------- Caja ----------
 
 function closeReportHTML(c) {

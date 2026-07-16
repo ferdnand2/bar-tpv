@@ -8,7 +8,7 @@ Sistema TPV de bar en español. Node.js **sin dependencias** (ni npm ni package.
 - **Toda lógica nueva de `server.js` hay que replicarla a mano en `docs/localdb.js`** (la demo reimplementa la API sobre localStorage). Después regenerar la demo: `node tools/build-pages.js` (copia `app.js`, `styles.css`, `qr.js` e `index.html` transformado de `public/` a `docs/`). `docs/localdb.js` es el único fichero de `docs/` que se edita a mano.
 - **Cambios de esquema**: subir `db.version` (actual: 7) en el seed y añadir un bloque de migración `if (db.version < N)` en `migrateDb()` — en `server.js` **y** en `docs/localdb.js` (allí las migraciones parten de v2). Nunca romper datos existentes.
 - Comentarios y UI en **español**. Estilo: sin dependencias, funciones pequeñas, validar en el servidor antes de mutar.
-- Para probar mutaciones de la API **no usar el servidor del puerto 3000** (escribe en `data/db.json` real): copiar `server.js` al scratchpad y arrancarlo allí con datos limpios. Hay una suite end-to-end en el scratchpad de la sesión (`test-api.js`, 41 checks) que conviene mantener/extender.
+- Para probar mutaciones de la API **no usar el servidor del puerto 3000** (escribe en `data/db.json` real): copiar `server.js` al scratchpad y arrancarlo allí con datos limpios. Suites end-to-end escritas en scratchpads de sesiones: `test-api.js` (41 checks, sesión anterior) y `test-export-import.js` (35 checks de exportar/importar); conviene recrearlas/extenderlas al tocar la API.
 - Tras tocar `server.js`, reiniciar el servidor del usuario (`node server.js`, puerto 3000, en background) — los estáticos no lo necesitan.
 
 ## Conceptos con semántica pactada (no cambiar sin preguntar)
@@ -19,6 +19,7 @@ Sistema TPV de bar en español. Node.js **sin dependencias** (ni npm ni package.
 - La clave de supervisor (`config.supervisorPin`, nunca se envía al cliente — ver `publicConfig()`) protege: Ajustes, borrados, anulación de pagos y cancelaciones en preparación.
 - Anular pago (`POST /api/sales/:id/void`): solo ventas de la caja actual; marca `voided` (fuera de caja e informes) y reabre la comanda en su mesa.
 - QR: `?mesa=<id>` abre la comanda; `?carta=base|<idLista>` muestra la carta pública sin el nombre de la lista.
+- Exportar/importar (`/api/export|import/precios|salas`): los ficheros referencian productos y listas por **nombre** (no por id) para ser portables entre instalaciones. Importar crea o actualiza por nombre y **nunca borra**; no toca el stock de productos existentes; exige clave de supervisor.
 
 ## Memoria
 

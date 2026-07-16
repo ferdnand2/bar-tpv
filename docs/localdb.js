@@ -236,6 +236,64 @@ function publicConfig() {
   return rest;
 }
 
+// ---------- Exportar / importar ----------
+// Los ficheros de exportación referencian productos y listas por NOMBRE (no por id),
+// para poder importarlos en otra instalación. Importar crea o actualiza por nombre;
+// nunca borra nada.
+
+function normName(s) { return String(s || '').trim().toLowerCase(); }
+
+function findProductByName(name) {
+  return db.products.find(p => p.active && normName(p.name) === normName(name));
+}
+
+function exportPreciosData() {
+  const priceLists = db.priceLists.map(pl => {
+    const prices = {};
+    for (const [pid, v] of Object.entries(pl.prices)) {
+      const p = findProduct(parseInt(pid, 10));
+      if (p && p.active) prices[p.name] = v;
+    }
+    return { name: pl.name, validFrom: pl.validFrom, validUntil: pl.validUntil, prices };
+  });
+  return {
+    type: 'bar-tpv',
+    kind: 'precios',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    nombreBar: db.config.nombreBar,
+    products: db.products.filter(p => p.active).map(p => ({
+      name: p.name, category: p.category, price: p.price,
+      stock: p.stock, minStock: p.minStock, maxStock: p.maxStock, openPrice: p.openPrice,
+    })),
+    priceLists,
+  };
+}
+
+function exportSalasData() {
+  return {
+    type: 'bar-tpv',
+    kind: 'salas',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    nombreBar: db.config.nombreBar,
+    locales: db.locales.map(l => ({
+      name: l.name,
+      areas: db.areas.filter(a => a.localId === l.id).map(a => {
+        const pl = a.priceListId != null ? findPriceList(a.priceListId) : null;
+        return {
+          name: a.name,
+          priceListName: pl ? pl.name : null,
+          planW: a.planW,
+          planH: a.planH,
+          tables: db.tables.filter(t => t.areaId === a.id)
+            .map(t => ({ name: t.name, seats: t.seats, note: t.note || '', posX: t.posX, posY: t.posY })),
+        };
+      }),
+    })),
+  };
+}
+
 // ---------- Rutas (portadas del servidor; res es un objeto {_status,_data}) ----------
 
 function jsonRes(res, status, data) { res._status = status; res._data = data; }
@@ -556,6 +614,166 @@ const routes = {
     db.priceLists = db.priceLists.filter(l => l.id !== id);
     saveDb();
     jsonRes(res, 200, { ok: true });
+  },
+
+  // --- Exportar / importar (precios+productos y salas) ---
+  'GET /api/export/precios': (req, res) => {
+    jsonRes(res, 200, exportPreciosData());
+  },
+
+  'GET /api/export/salas': (req, res) => {
+    jsonRes(res, 200, exportSalasData());
+  },
+
+  // Importa productos y listas de precios: crea o actualiza por nombre, nunca borra.
+  // El stock actual de los productos existentes no se toca (es el inventario vivo).
+  'POST /api/import/precios': (req, res, body) => {
+    if (!checkPin(res, body.pin)) return;
+    const data = body.data;
+    if (!data || data.type !== 'bar-tpv' || data.kind !== 'precios') {
+      return badRequest(res, 'El fichero no es una exportación de precios de este sistema');
+    }
+    if (!Array.isArray(data.products) || !Array.isArray(data.priceLists)) {
+      return badRequest(res, 'Exportación incompleta: faltan los productos o las listas');
+    }
+    // Validación completa antes de mutar nada.
+    const isDate = v => v == null || v === '' || /^\d{4}-\d{2}-\d{2}$/.test(String(v));
+    for (const p of data.products) {
+      if (!p || !String(p.name || '').trim() || !String(p.category || '').trim()) {
+        return badRequest(res, 'Hay un producto sin nombre o sin categoría en el fichero');
+      }
+      if (parsePrice(p.price) === null) return badRequest(res, `Precio base inválido en el producto "${p.name}"`);
+      for (const k of ['stock', 'minStock', 'maxStock']) {
+        const v = parseInt(p[k] || 0, 10);
+        if (isNaN(v) || v < 0) return badRequest(res, `${k} inválido en el producto "${p.name}"`);
+      }
+    }
+    for (const pl of data.priceLists) {
+      if (!pl || !String(pl.name || '').trim()) return badRequest(res, 'Hay una lista de precios sin nombre en el fichero');
+      if (!isDate(pl.validFrom) || !isDate(pl.validUntil)) return badRequest(res, `Vigencia inválida en la lista "${pl.name}" (formato AAAA-MM-DD)`);
+      for (const [prodName, v] of Object.entries(pl.prices || {})) {
+        if (parsePrice(v) === null) return badRequest(res, `Precio inválido de "${prodName}" en la lista "${pl.name}"`);
+      }
+    }
+
+    const summary = { productsCreated: 0, productsUpdated: 0, listsCreated: 0, listsUpdated: 0, pricesOmitted: 0 };
+    for (const src of data.products) {
+      const p = findProductByName(src.name);
+      if (p) {
+        p.category = String(src.category).trim();
+        p.price = parsePrice(src.price);
+        p.minStock = parseInt(src.minStock || 0, 10);
+        p.maxStock = parseInt(src.maxStock || 0, 10);
+        p.openPrice = !!src.openPrice;
+        summary.productsUpdated++;
+      } else {
+        db.products.push({
+          id: newId(),
+          name: String(src.name).trim(),
+          category: String(src.category).trim(),
+          price: parsePrice(src.price),
+          stock: parseInt(src.stock || 0, 10),
+          minStock: parseInt(src.minStock || 0, 10),
+          maxStock: parseInt(src.maxStock || 0, 10),
+          active: true,
+          openPrice: !!src.openPrice,
+        });
+        summary.productsCreated++;
+      }
+    }
+    for (const src of data.priceLists) {
+      let pl = db.priceLists.find(x => normName(x.name) === normName(src.name));
+      if (pl) {
+        summary.listsUpdated++;
+      } else {
+        pl = { id: newId(), name: String(src.name).trim(), prices: {}, validFrom: null, validUntil: null };
+        db.priceLists.push(pl);
+        summary.listsCreated++;
+      }
+      pl.validFrom = src.validFrom || null;
+      pl.validUntil = src.validUntil || null;
+      pl.prices = {};
+      for (const [prodName, v] of Object.entries(src.prices || {})) {
+        const p = findProductByName(prodName);
+        if (!p || p.openPrice) { summary.pricesOmitted++; continue; }
+        pl.prices[p.id] = parsePrice(v);
+      }
+    }
+    saveDb();
+    jsonRes(res, 200, { ok: true, ...summary });
+  },
+
+  // Importa locales, áreas y mesas: crea o actualiza por nombre (mesa dentro de su área,
+  // área dentro de su local), nunca borra. La tarifa del área se enlaza por nombre de lista.
+  'POST /api/import/salas': (req, res, body) => {
+    if (!checkPin(res, body.pin)) return;
+    const data = body.data;
+    if (!data || data.type !== 'bar-tpv' || data.kind !== 'salas') {
+      return badRequest(res, 'El fichero no es una exportación de salas (locales, áreas y mesas)');
+    }
+    if (!Array.isArray(data.locales)) return badRequest(res, 'Exportación incompleta: faltan los locales');
+    // Validación completa antes de mutar nada.
+    for (const l of data.locales) {
+      if (!l || !String(l.name || '').trim() || !Array.isArray(l.areas)) return badRequest(res, 'Hay un local inválido en el fichero');
+      for (const a of l.areas) {
+        if (!a || !String(a.name || '').trim() || !Array.isArray(a.tables)) return badRequest(res, `Hay un área inválida en el local "${l.name}"`);
+        if (a.planW != null && (isNaN(parseFloat(a.planW)) || a.planW < 20 || a.planW > 100)) return badRequest(res, `Ancho del plano inválido en el área "${a.name}" (20-100%)`);
+        if (a.planH != null && (!Number.isInteger(parseInt(a.planH, 10)) || a.planH < 180 || a.planH > 2000)) return badRequest(res, `Alto del plano inválido en el área "${a.name}" (180-2000 px)`);
+        for (const t of a.tables) {
+          if (!t || !String(t.name || '').trim()) return badRequest(res, `Hay una mesa sin nombre en el área "${a.name}"`);
+          const seats = parseInt(t.seats, 10);
+          if (!Number.isInteger(seats) || seats < 1 || seats > 50) return badRequest(res, `Número de puestos inválido en la mesa "${t.name}"`);
+          for (const k of ['posX', 'posY']) {
+            if (t[k] != null && (isNaN(parseFloat(t[k])) || t[k] < 0 || t[k] > 100)) return badRequest(res, `Posición inválida en la mesa "${t.name}"`);
+          }
+        }
+      }
+    }
+
+    const summary = { localesCreated: 0, areasCreated: 0, areasUpdated: 0, tablesCreated: 0, tablesUpdated: 0 };
+    for (const lsrc of data.locales) {
+      let local = db.locales.find(x => normName(x.name) === normName(lsrc.name));
+      if (!local) {
+        local = { id: newId(), name: String(lsrc.name).trim() };
+        db.locales.push(local);
+        summary.localesCreated++;
+      }
+      for (const asrc of lsrc.areas) {
+        let area = db.areas.find(x => x.localId === local.id && normName(x.name) === normName(asrc.name));
+        if (area) {
+          summary.areasUpdated++;
+        } else {
+          area = { id: newId(), localId: local.id, name: String(asrc.name).trim(), priceListId: null, planW: null, planH: null };
+          db.areas.push(area);
+          summary.areasCreated++;
+        }
+        // Tarifa por nombre: si aquí no existe una lista con ese nombre, se conserva la actual.
+        if (asrc.priceListName == null) {
+          area.priceListId = null;
+        } else {
+          const pl = db.priceLists.find(x => normName(x.name) === normName(asrc.priceListName));
+          if (pl) area.priceListId = pl.id;
+        }
+        area.planW = asrc.planW != null ? Math.round(parseFloat(asrc.planW) * 10) / 10 : null;
+        area.planH = asrc.planH != null ? parseInt(asrc.planH, 10) : null;
+        for (const tsrc of asrc.tables) {
+          let table = db.tables.find(x => x.areaId === area.id && normName(x.name) === normName(tsrc.name));
+          if (table) {
+            summary.tablesUpdated++;
+          } else {
+            table = { id: newId(), areaId: area.id, name: String(tsrc.name).trim(), seats: 1, note: '', posX: null, posY: null };
+            db.tables.push(table);
+            summary.tablesCreated++;
+          }
+          table.seats = parseInt(tsrc.seats, 10);
+          table.note = String(tsrc.note || '').trim().slice(0, 200);
+          table.posX = tsrc.posX != null ? Math.round(parseFloat(tsrc.posX) * 10) / 10 : null;
+          table.posY = tsrc.posY != null ? Math.round(parseFloat(tsrc.posY) * 10) / 10 : null;
+        }
+      }
+    }
+    saveDb();
+    jsonRes(res, 200, { ok: true, ...summary });
   },
 
   'POST /api/products': (req, res, body) => {
